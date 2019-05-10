@@ -13,8 +13,9 @@ The [Cheat Sheet](cheat-sheet/CheatSheet.md) is a print-optimized version.
 - [How to](#how-to)
   - [How to Get Started with Clean Code](#how-to-get-started-with-clean-code)
   - [How to Refactor Legacy Code](#how-to-refactor-legacy-code)
+  - [How to Check Automatically](#how-to-check-automatically)
   - [How to Relate to Other Guides](#how-to-relate-to-other-guides)
-  - [How to Disagree](#how-to-disagree)  
+  - [How to Disagree](#how-to-disagree)
 - [Names](#names)
   - [Use descriptive names](#use-descriptive-names)
   - [Prefer solution domain and problem domain terms](#prefer-solution-domain-and-problem-domain-terms)
@@ -30,8 +31,9 @@ The [Cheat Sheet](cheat-sheet/CheatSheet.md) is a print-optimized version.
 - [Language](#language)
   - [Mind the legacy](#mind-the-legacy)
   - [Mind the performance](#mind-the-performance)
-  - [Prefer object orientation to imperative programming](#prefer-object-orientation-to-imperative-programming)
+  - [Prefer object orientation to procedural programming](#prefer-object-orientation-to-procedural-programming)
   - [Prefer functional to procedural language constructs](#prefer-functional-to-procedural-language-constructs)
+  - [Avoid obsolete language elements](#avoid-obsolete-language-elements)
   - [Use design patterns wisely](#use-design-patterns-wisely)
 - [Constants](#constants)
   - [Use constants instead of magic numbers](#use-constants-instead-of-magic-numbers)
@@ -261,6 +263,20 @@ as it may introduce a breach between old and new code,
 up to a degree where sections like
 [Avoid encodings, esp. Hungarian notation and prefixes](#avoid-encodings-esp-hungarian-notation-and-prefixes)
 are better ignored.
+
+### How to Check Automatically
+
+> [Clean ABAP](#clean-abap) > [Content](#content) > [How to](#how-to) > [This section](#how-to-check-automatically)
+
+There is no comprehensive suite of static code checks
+that automatically detect the anti-patterns we describe here.
+
+ABAP Test Cockpit, Code Inspector, Extended Check, and Checkman provide
+some checks that may help you find certain issues.
+
+[abapOpenChecks](https://github.com/larshp/abapOpenChecks),
+an Open Source collection of Code Inspector checks,
+also covers some of the described anti-patterns.
 
 ### How to Relate to Other Guides
 
@@ -535,13 +551,29 @@ Try to build things in a clean, object-oriented way.
 If something is too slow, make a performance measurement.
 Only then should you take a fact-based decision to discard selected rules.
 
-### Prefer object orientation to imperative programming
+Some further thoughts, taken in part from Chapter 2 of 
+[Martin Fowler's _Refactoring_](https://martinfowler.com/books/refactoring.html):
 
-> [Clean ABAP](#clean-abap) > [Content](#content) > [Language](#language) > [This section](#prefer-object-orientation-to-imperative-programming)
+In a typical application the majority of the runtime is spent in a very small proportion 
+of the code. As little as 10% of the code can account for 90% of the runtime, and especially 
+in ABAP a large proportion of runtime is likely to be database time. 
+
+Thus it is not the best use of resources to spend significant effort on trying to make _all_ 
+code super-efficient all the time. We're not suggesting ignoring performance, but rather 
+focus more on clean and well structured code during initial development, and use the 
+profiler to identify critical areas to optimize. 
+
+In fact, we would argue that such an approach will have a net positive effect on performance 
+because it is a more targeted optimization effort, and it should be easier 
+to identify performance bottlenecks and easier to refactor and tune well structured code.
+
+### Prefer object orientation to procedural programming
+
+> [Clean ABAP](#clean-abap) > [Content](#content) > [Language](#language) > [This section](#prefer-object-orientation-to-procedural-programming)
 
 Object-oriented programs (classes, interfaces) are segmented better
-and can be refactored and tested more easily than imperative code (functions, programs).
-Although there are situations where you must provide imperative objects
+and can be refactored and tested more easily than procedural code (functions, programs).
+Although there are situations where you must provide procedural objects
 (a function for an RFC, a program for a transaction),
 these objects should do little more than call a corresponding class that provides the actual feature:
 
@@ -590,6 +622,54 @@ IF line_exists( value_pairs[ name = 'A' ] ).
 ```
 
 Many of the detailed rules below are just specific reiterations of this general advice.
+
+### Avoid obsolete language elements
+
+> [Clean ABAP](#clean-abap) > [Content](#content) > [Language](#language) > [This section](#avoid-obsolete-language-elements)
+
+When upgrading your ABAP version,
+make sure to check for obsolete language elements
+and refrain from using them.
+
+For example, the `@`-escaped "host" variables
+in the following statement make a little clearer
+what's a program variable and what's a column in the database,
+
+```ABAP
+SELECT *
+  FROM spfli
+  WHERE carrid = @carrid AND
+        connid = @connid
+  INTO TABLE @itab.
+```
+
+as compared to the [obsolete unescaped form](https://help.sap.com/doc/abapdocu_750_index_htm/7.50/en-US/abenopen_sql_hostvar_obsolete.htm)
+
+```ABAP
+SELECT *
+  FROM spfli
+  WHERE carrid = carrid AND
+        connid = connid
+  INTO TABLE itab.
+```
+
+Newer alternatives tend to improve readability of the code,
+and reduce design conflicts with modern programming paradigms,
+such that switching to them can automatically clean your code.
+
+While continuing to work, obsolete elements may stop benefitting
+from optimizations in terms of processing speed and memory consumption.
+
+With modern language elements, you can onboard young ABAPers easier,
+who may no longer be familiar with the outdated constructs
+because they are no longer taught in SAP's trainings.
+
+The SAP NetWeaver documentation contains a stable section
+that lists obsolete language elements, for example
+[NW 7.50](https://help.sap.com/doc/abapdocu_750_index_htm/7.50/en-US/index.htm?file=abenabap_obsolete.htm),
+[NW 7.51](https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-US/index.htm?file=abenabap_obsolete.htm),
+[NW 7.52](https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/index.htm?file=abenabap_obsolete.htm),
+[NW 7.53](https://help.sap.com/doc/abapdocu_753_index_htm/7.53/en-US/index.htm?file=abenabap_obsolete.htm).
 
 ### Use design patterns wisely
 
@@ -931,7 +1011,7 @@ or even
 
 ```ABAP
 " anti-pattern
-LOOP AT my_table ASSIGNING FIELD-SYMBOL(<line>) WHERE key = 'A'.
+LOOP AT my_table REFERENCE INTO DATA(line) WHERE key = 'A'.
   line_exists = abap_true.
   EXIT.
 ENDLOOP.
@@ -942,14 +1022,14 @@ ENDLOOP.
 > [Clean ABAP](#clean-abap) > [Content](#content) > [Tables](#tables) > [This section](#prefer-read-table-to-loop-at)
 
 ```ABAP
-READ TABLE my_table ASSIGNING FIELD-SYMBOL(<line>) WITH KEY key = 'A'.
+READ TABLE my_table REFERENCE INTO DATA(line) WITH KEY key = 'A'.
 ```
 
 expresses the intent clearer and shorter than
 
 ```ABAP
 " anti-pattern
-LOOP AT my_table ASSIGNING FIELD-SYMBOL(<line>) WHERE key = 'A'.
+LOOP AT my_table REFERENCE INTO DATA(line) WHERE key = 'A'.
   EXIT.
 ENDLOOP.
 ```
@@ -958,8 +1038,8 @@ or even
 
 ```ABAP
 " anti-pattern
-LOOP AT my_table ASSIGNING FIELD-SYMBOL(<line>).
-  IF <line>-key = 'A'.
+LOOP AT my_table REFERENCE INTO DATA(line).
+  IF line->key = 'A'.
     EXIT.
   ENDIF.
 ENDLOOP.
@@ -970,14 +1050,14 @@ ENDLOOP.
 > [Clean ABAP](#clean-abap) > [Content](#content) > [Tables](#tables) > [This section](#prefer-loop-at-where-to-nested-if)
 
 ```ABAP
-LOOP AT my_table ASSIGNING FIELD-SYMBOL(<line>) WHERE key = 'A'.
+LOOP AT my_table REFERENCE INTO DATA(line) WHERE key = 'A'.
 ``` 
 
 expresses the intent clearer and shorter than
 
 ```ABAP
-LOOP AT my_table ASSIGNING FIELD-SYMBOL(<line>).
-  IF <line>-key = 'A'.
+LOOP AT my_table REFERENCE INTO DATA(line).
+  IF line->key = 'A'.
     EXIT.
   ENDIF.
 ENDLOOP.
@@ -1060,13 +1140,11 @@ assert_true( xsdbool( document->is_archived( ) = abap_true AND
                       document->is_partially_archived( ) = abap_true ) ).
 ```
 
-[Split methods instead of Boolean input parameter](#split-methods-instead-of-boolean-input-parameter)
+[Split method instead of Boolean input parameter](#split-method-instead-of-boolean-input-parameter)
 moreover explains why you should always challenge Boolean parameters.
 
 > Read more in
 > [1](http://www.beyondcode.org/articles/booleanVariables.html)
-> [2](https://silkandspinach.net/2004/07/15/avoid-boolean-parameters/)
-> [3](http://jlebar.com/2011/12/16/Boolean_parameters_to_API_functions_considered_harmful..html)
 
 ### Use ABAP_BOOL for Booleans
 
@@ -1381,9 +1459,9 @@ DATA(is_valid) = matches( val     = class_name
 > [Clean ABAP](#clean-abap) > [Content](#content) > [Regular expressions](#regular-expressions) > [This section](#consider-assembling-complex-regular-expressions)
 
 ```ABAP
-CONSTANTS class_names TYPE string VALUE `CL\_.*`.
-CONSTANTS interface_names TYPE string VALUE `IF\_.*`.
-DATA(object_names) = |{ class_names }|{ interface_names }|.
+CONSTANTS class_name TYPE string VALUE `CL\_.*`.
+CONSTANTS interface_name TYPE string VALUE `IF\_.*`.
+DATA(object_name) = |{ class_name }\|{ interface_name }|.
 ```
 
 Some complex regular expressions become easier
@@ -1869,6 +1947,7 @@ and repeating the parameter name may further understandability:
 
 ```ABAP
 car->drive( speed = 50 ).
+update( asynchronous = abap_true ).
 ```
 
 ### Methods: Object orientation
@@ -1971,8 +2050,8 @@ by adding optional parameters
 " anti-pattern
 METHODS do_one_or_the_other
   IMPORTING
-    what_i_need    TYPE string
-    something_else TYPE i.
+    what_i_need    TYPE string OPTIONAL
+    something_else TYPE i OPTIONAL.
 ```
 
 Optional parameters confuse callers:
@@ -2218,21 +2297,30 @@ Do not use `CHANGING` parameters to initially fill a previously empty variable.
 
 > [Clean ABAP](#clean-abap) > [Content](#content) > [Methods](#methods) > [Parameter Types](#parameter-types) > [This section](#split-method-instead-of-boolean-input-parameter)
 
-Boolean input parameters are often an indicator that the method does _two_ things instead of one.
-Challenge these parameters and investigate whether it would make more sense to split the method.
-
-```ABAP
-METHODS update_without_saving.
-METHODS update_and_save.
-```
-
-may be clearer than
+Boolean input parameters are often an indicator
+that a method does _two_ things instead of one.
 
 ```ABAP
 " anti-pattern
 METHODS update
   IMPORTING
     do_save TYPE abap_bool.
+```
+
+Also, method calls with a single - and thus unnamed - Boolean parameter
+tend to obscure the parameter's meaning.
+
+```ABAP
+" anti-pattern
+update( abap_true ).  " what does 'true' mean? synchronous? simulate? commit?
+```
+
+Splitting the method may simplify the methods' code 
+and describe the different intentions better
+
+```ABAP
+update_without_saving( ).
+update_and_save( ).
 ```
 
 Common perception suggests that setters for Boolean variables are okay:
@@ -2242,6 +2330,11 @@ METHODS set_is_deleted
   IMPORTING
     new_value TYPE abap_bool.
 ```
+
+> Read more in
+> [1](http://www.beyondcode.org/articles/booleanVariables.html)
+> [2](https://silkandspinach.net/2004/07/15/avoid-boolean-parameters/)
+> [3](http://jlebar.com/2011/12/16/Boolean_parameters_to_API_functions_considered_harmful..html)
 
 ### Parameter Names
 
